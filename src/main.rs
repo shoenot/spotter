@@ -7,8 +7,34 @@ use sqlx::PgPool;
 use tokio::time::{interval, Duration};
 use rspotify::model::TimeLimits;
 use crate::auth::auth_spotify;
-use crate::spotify_data::{get_recent_plays};
+use crate::spotify_data::{get_recent_plays, PlayData};
 use crate::database::*;
+
+async fn run_inserts(pool: &PgPool, recent_songs: Vec<PlayData>) 
+    -> Result<(), Box<dyn std::error::Error>> {
+    for song in recent_songs {
+        let results: Vec<_> = futures::future::join_all(
+            song.artists.iter().map(|a| a.insert(pool))
+        ).await;
+
+        if results.iter().any(|r| r.is_err())
+            || song.album.insert(pool).await.is_err()
+            || song.track.insert(pool).await.is_err()
+            || song.play.insert(pool).await.is_err()
+        {
+            eprintln!("Skipping {} at {} - insert failed", song.track.name, song.play.played_at);
+            continue;
+        }
+
+        for artist in &song.artists {
+            insert_album_artist(pool, &song.album.id, &artist.id).await?;
+            insert_track_artist(pool, &song.track.id, &artist.id).await?;
+        }
+        insert_track_album(pool, &song.track.id, &song.album.id).await?;
+        println!("Inserted {} :)", song.track.name);
+    }
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let spotify= auth_spotify().await?;
 
     let mut ticker = interval(Duration::from_secs(300));
-
+    
     loop {
         ticker.tick().await;
 
@@ -43,21 +69,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
         };
-        for song in recent_songs {
-            for artist in &song.artists { 
-                if let Err(e) = artist.insert(&pool).await {
-                    eprintln!("Failed to insert artist: {e}")
-                }
-            }
-            song.album.insert(&pool).await?;
-            song.track.insert(&pool).await?;
-            song.play.insert(&pool).await?;
-            for artist in &song.artists { 
-                insert_album_artist(&pool, &song.album.id, &artist.id).await?;
-                insert_track_artist(&pool, &song.track.id, &artist.id).await?;
-            }
-            insert_track_album(&pool, &song.track.id, &song.album.id).await?;
-            println!("Inserted {} :)", song.track.name);
-        }
+
+        if let Err(e) = run_inserts(&pool, recent_songs).await {
+            eprintln!("An error occurred: {e}");
+            continue;
+        };
     }
 }
