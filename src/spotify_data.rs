@@ -6,11 +6,11 @@ use rspotify::{
         PlayHistory,
         SimplifiedArtist,
         ArtistId,
+        TimeLimits
     },
     clients::BaseClient,
-    ClientError,
+    ClientError
 };
-use crate::TimeLimits;
 use crate::database;
 
 async fn get_spotify_recents(spotify: &AuthCodeSpotify, number: u32, cursor: Option<TimeLimits>) 

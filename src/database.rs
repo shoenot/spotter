@@ -30,7 +30,6 @@ pub struct Track {
 
 #[derive(Debug)]
 pub struct Play {
-    pub id: i64,
     pub track_id: String,
     pub played_at: DateTime<Utc>
 }

@@ -45,7 +45,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         for song in recent_songs {
             for artist in &song.artists { 
-                artist.insert(&pool).await?; 
+                if let Err(e) = artist.insert(&pool).await {
+                    eprintln!("Failed to insert artist: {e}")
+                }
             }
             song.album.insert(&pool).await?;
             song.track.insert(&pool).await?;
