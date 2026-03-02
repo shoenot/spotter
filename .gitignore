@@ -1,0 +1,4 @@
+/target
+/export
+.spotify_token_cache.json
+.env
