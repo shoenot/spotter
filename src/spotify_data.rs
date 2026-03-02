@@ -100,7 +100,6 @@ pub async fn get_recent_plays(spotify: &AuthCodeSpotify, number: u32, cursor: Op
         };
 
         let play = database::Play {
-            id: 0, 
             track_id: track.id.clone(),
             played_at: item.played_at,
         };
