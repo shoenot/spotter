@@ -14,6 +14,7 @@ pub async fn auth_spotify() -> Result<AuthCodeSpotify, ClientError> {
     let config = Config {
         token_refreshing: true,
         token_cached: true,
+        cache_path: std::path::PathBuf::from("/app/cache/.spotify_token_cache.json"),
         ..Default::default()
     };
 
