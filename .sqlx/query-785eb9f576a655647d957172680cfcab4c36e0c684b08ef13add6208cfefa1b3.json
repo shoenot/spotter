@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO albums (id, name, album_type, release_date, image_url, album_url)\n             VALUES ($1, $2, $3, $4, $5, $6)\n             ON CONFLICT (id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "785eb9f576a655647d957172680cfcab4c36e0c684b08ef13add6208cfefa1b3"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO plays (track_id, played_at)\n             VALUES ($1, $2)\n             ON CONFLICT (played_at) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "901c7822977ef336c775c600081ab44412dde7226916879b3556df007ba0d125"
+}

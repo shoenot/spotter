@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO track_albums (track_id, album_id)\n         VALUES ($1, $2)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1bb972b6255658d13100201dce86c995d4e906b1fe46944ae08b4f1444a267f0"
+}
