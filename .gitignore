@@ -1,4 +1,6 @@
-/target
-/export
-.spotify_token_cache.json
+/spotter/target
+/spotter/export
+/spotter/.spotify_token_cache.json
 .env
+
+/spotter_api/target

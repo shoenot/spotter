@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: spot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d spot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  spotter:
+    build: ./spotter
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db/spot
+      RSPOTIFY_CLIENT_ID: ${RSPOTIFY_CLIENT_ID}
+      RSPOTIFY_CLIENT_SECRET: ${RSPOTIFY_CLIENT_SECRET}
+      RSPOTIFY_CACHE_PATH: /app/.spotify_token_cache.json
+    volumes:
+      # Persist the Spotify token cache so you don't have to re-auth on restart
+      - spotify_token:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  spotter_api:
+    build: ./spotter_api
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db/spot
+    ports:
+      - "4005:4005"
+    depends_on:
+      db:
+        condition: service_healthy
+      spotter:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  spotify_token:

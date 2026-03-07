@@ -31,7 +31,22 @@ pub async fn auth_spotify() -> Result<AuthCodeSpotify, ClientError> {
         let url = spotify
             .get_authorize_url(false)
             .expect("Failed to build authorize URL");
-        spotify.prompt_for_token(&url).await?;
+
+        println!("Open this URL in your browser to authenticate:");
+        println!("\n{}\n", url);
+        println!("After authorizing, paste the full redirect URL here:");
+
+        let mut redirect_url = String::new();
+        std::io::stdin()
+            .read_line(&mut redirect_url)
+            .expect("Failed to read redirect URL");
+        let redirect_url = redirect_url.trim();
+
+        let code = spotify 
+            .parse_response_code(redirect_url)
+            .expect("Could not parse code from redirect URL — make sure you pasted the full URL");
+        
+        spotify.request_token(&code).await?;
     }
 
     Ok(spotify)
