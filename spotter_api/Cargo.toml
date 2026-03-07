@@ -1,5 +1,5 @@
 [package]
-name = "spotter_client"
+name = "spotter_api"
 version = "0.1.0"
 edition = "2024"
 
