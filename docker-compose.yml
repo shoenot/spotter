@@ -19,10 +19,10 @@ services:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db/spot
       RSPOTIFY_CLIENT_ID: ${RSPOTIFY_CLIENT_ID}
       RSPOTIFY_CLIENT_SECRET: ${RSPOTIFY_CLIENT_SECRET}
-      RSPOTIFY_CACHE_PATH: /app/.spotify_token_cache.json
+      RSPOTIFY_CACHE_PATH: /app/cache/.spotify_token_cache.json
     volumes:
       # Persist the Spotify token cache so you don't have to re-auth on restart
-      - spotify_token:/app
+      - spotify_token:/app/cache
     depends_on:
       db:
         condition: service_healthy
