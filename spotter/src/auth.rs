@@ -47,6 +47,8 @@ pub async fn auth_spotify() -> Result<AuthCodeSpotify, ClientError> {
             .expect("Could not parse code from redirect URL — make sure you pasted the full URL");
         
         spotify.request_token(&code).await?;
+        println!("Successfuly authenticated. Exiting now. In the future you can just use \'docker compose up -d\' now that the token is successfully cached.");
+        std::process::exit(0);
     }
 
     Ok(spotify)
