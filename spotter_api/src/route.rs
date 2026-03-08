@@ -8,5 +8,7 @@ pub fn create_router(pool: PgPool) -> Router {
         .route("/top/albums", get(get_top_albums))
         .route("/top/tracks", get(get_top_tracks))
         .route("/history", get(get_play_history))
+        .route("/recents", get(get_recents))
+        .route("/stats", get(get_stats))
         .with_state(pool)
 }

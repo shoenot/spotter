@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+axum = "0.8.8"
 chrono = "0.4.44"
 dotenvy = "0.15.7"
 futures = "0.3.32"
-rspotify = { version = "0.15.3", features = ["reqwest-default-tls", "cli", "env-file"] }
+rspotify = { version = "0.15.3", features = ["reqwest-default-tls", "env-file"] }
 sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio", "chrono"] }
 tokio = { version = "1", features = ["full"] }

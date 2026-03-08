@@ -1,5 +1,5 @@
 # --- Build stage ---
-FROM rust:1.87-slim AS builder
+FROM rust:1.94-slim AS builder
 
 # Install system deps needed to compile (openssl, pg client headers)
 RUN apt-get update && apt-get install -y pkg-config libssl-dev libpq-dev && rm -rf /var/lib/apt/lists/*
@@ -38,4 +38,5 @@ COPY --from=builder /app/target/release/spotter .
 # Copy migrations so spotter can run them on startup
 COPY --from=builder /app/migrations ./migrations
 
+RUN mkdir -p /app/data
 CMD ["./spotter"]

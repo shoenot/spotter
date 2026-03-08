@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset};
 use sqlx::{
     PgPool,
     query_as
@@ -10,7 +10,7 @@ pub struct ListArtist {
     name: String,
     play_count: i64,
     play_time: i64, // minutes
-    first_listened: DateTime<Utc>,
+    first_listened: DateTime<FixedOffset>,
     first_listened_track: String
 }
 
@@ -20,7 +20,7 @@ pub struct ListAlbum {
     play_count: i64, 
     play_time: i64, 
     artists: String, // concatenated
-    first_listened: DateTime<Utc>,
+    first_listened: DateTime<FixedOffset>,
     first_listened_track: String
 }
 
@@ -31,7 +31,7 @@ pub struct ListTrack {
     play_time: i64, 
     artists: String,
     album: String,
-    first_listened: DateTime<Utc>
+    first_listened: DateTime<FixedOffset>
 }
 
 #[derive(sqlx::FromRow, Serialize)]
@@ -39,10 +39,20 @@ pub struct ListPlay {
     name: String,
     artists: String, 
     album: String,
-    played_at: DateTime<Utc>
+    played_at: DateTime<FixedOffset>
 }
 
-pub async fn query_top_artists(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: DateTime<Utc>, limit: i32)
+#[derive(sqlx::FromRow, Serialize)]
+pub struct ListStats {
+    total_plays: i64,
+    unique_tracks: i64, 
+    unique_artists: i64,
+    unique_albums: i64,
+    total_playtime: String,
+    avg_release_year: String
+}
+
+pub async fn query_top_artists(pool: &PgPool, from: DateTime<FixedOffset>, to: DateTime<FixedOffset>, lim: i32)
     -> Result<Option<Vec<ListArtist>>, sqlx::Error> {
     let artists: Vec<ListArtist> = query_as::<_, ListArtist>(
         "WITH artist_stats AS (
@@ -81,9 +91,9 @@ pub async fn query_top_artists(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: D
         FROM artist_stats s
         JOIN all_time_firsts f ON s.artist_id = f.artist_id
         ORDER BY s.play_count DESC")
-        .bind(dt_start)
-        .bind(dt_end)
-        .bind(limit)
+        .bind(from)
+        .bind(to)
+        .bind(lim)
         .fetch_all(pool)
         .await?;
     if artists.is_empty() {
@@ -92,7 +102,7 @@ pub async fn query_top_artists(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: D
     Ok(Some(artists))
 }
 
-pub async fn query_top_albums(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: DateTime<Utc>, limit: i32)
+pub async fn query_top_albums(pool: &PgPool, from: DateTime<FixedOffset>, to: DateTime<FixedOffset>, lim: i32)
     -> Result<Option<Vec<ListAlbum>>, sqlx::Error> {
     let albums: Vec<ListAlbum> = query_as::<_, ListAlbum>(
         "WITH album_stats AS (
@@ -134,9 +144,9 @@ pub async fn query_top_albums(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: Da
         FROM album_stats s
         JOIN album_firsts f ON s.album_id = f.album_id
         ORDER BY s.play_count DESC")
-        .bind(dt_start)
-        .bind(dt_end)
-        .bind(limit)
+        .bind(from)
+        .bind(to)
+        .bind(lim)
         .fetch_all(pool)
         .await?;
     if albums.is_empty() {
@@ -145,7 +155,7 @@ pub async fn query_top_albums(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: Da
     Ok(Some(albums))
 }
 
-pub async fn query_top_tracks(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: DateTime<Utc>, limit: i32)
+pub async fn query_top_tracks(pool: &PgPool, from: DateTime<FixedOffset>, to: DateTime<FixedOffset>, lim: i32)
     -> Result<Option<Vec<ListTrack>>, sqlx::Error> {
     let tracks: Vec<ListTrack> = query_as::<_, ListTrack>(
         "WITH top_track_ids AS (
@@ -193,9 +203,9 @@ pub async fn query_top_tracks(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: Da
         JOIN track_metadata m ON s.track_id = m.track_id
         JOIN track_firsts f ON s.track_id = f.track_id
         ORDER BY s.play_count DESC")
-        .bind(dt_start)
-        .bind(dt_end)
-        .bind(limit)
+        .bind(from)
+        .bind(to)
+        .bind(lim)
         .fetch_all(pool)
         .await?;
     if tracks.is_empty() {
@@ -204,7 +214,7 @@ pub async fn query_top_tracks(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: Da
     Ok(Some(tracks))
 }
 
-pub async fn query_play_history(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: DateTime<Utc>)
+pub async fn query_play_history(pool: &PgPool, from: DateTime<FixedOffset>, to: DateTime<FixedOffset>)
     -> Result<Option<Vec<ListPlay>>, sqlx::Error> {
     let plays: Vec<ListPlay> = query_as::<_, ListPlay>(
         "SELECT 
@@ -221,12 +231,80 @@ pub async fn query_play_history(pool: &PgPool, dt_start: DateTime<Utc>, dt_end: 
         WHERE p.played_at >= $1 AND p.played_at < $2
         GROUP BY t.name, p.played_at
         ORDER BY p.played_at DESC")
-        .bind(dt_start)
-        .bind(dt_end)
+        .bind(from)
+        .bind(to)
         .fetch_all(pool)
         .await?;
     if plays.is_empty() {
         return Ok(None)
     }
     Ok(Some(plays))
+}
+
+pub async fn query_recents(pool: &PgPool)
+    -> Result<Option<Vec<ListPlay>>, sqlx::Error> {
+    let plays: Vec<ListPlay> = query_as::<_, ListPlay>(
+        "SELECT
+            t.name,
+            STRING_AGG(DISTINCT art.name, ', ' ORDER BY art.name) AS artists,
+            MIN(a.name) AS album,
+            p.played_at
+        FROM plays p
+        JOIN tracks t ON p.track_id = t.id
+        JOIN track_artists ta ON t.id = ta.track_id
+        JOIN artists art ON ta.artist_id = art.id
+        LEFT JOIN track_albums tal ON t.id = tal.track_id
+        LEFT JOIN albums a ON tal.album_id = a.id
+        GROUP BY t.name, p.played_at
+        ORDER BY p.played_at DESC
+        LIMIT 25")
+        .fetch_all(pool)
+        .await?;
+    if plays.is_empty() {
+        return Ok(None)
+    }
+    Ok(Some(plays))
+}
+
+pub async fn query_stats(pool: &PgPool, from: DateTime<FixedOffset>, to: DateTime<FixedOffset>)
+    -> Result<Option<Vec<ListStats>>, sqlx::Error> {
+    let stats: Vec<ListStats> = query_as::<_, ListStats>(
+        "WITH filtered_plays AS (
+            SELECT 
+                p.track_id,
+                t.duration,
+                talb.album_id,
+                NULLIF(SUBSTRING(a.release_date FROM 1 FOR 4), '')::INT AS release_year
+            FROM plays p
+            JOIN tracks t ON p.track_id = t.id
+            LEFT JOIN track_albums talb ON p.track_id = talb.track_id
+            LEFT JOIN albums a ON talb.album_id = a.id
+            WHERE p.played_at::DATE BETWEEN $1::DATE AND $2::DATE
+        ),
+        artist_counts AS (
+            SELECT COUNT(DISTINCT ta.artist_id) as unique_artists
+            FROM plays p
+            JOIN track_artists ta ON p.track_id = ta.track_id
+            WHERE p.played_at::DATE BETWEEN $1::DATE AND $2::DATE
+        )
+        SELECT 
+            COUNT(*) AS total_plays,
+            COUNT(DISTINCT track_id) AS unique_tracks,
+            (SELECT unique_artists FROM artist_counts) AS unique_artists,
+            COUNT(DISTINCT album_id) AS unique_albums,
+            
+            COALESCE(FLOOR(SUM(duration) / 3600000), 0) || 'h ' || 
+            COALESCE(FLOOR((SUM(duration) % 3600000) / 60000), 0) || 'm' AS total_playtime,
+
+            COALESCE(ROUND(AVG(release_year))::TEXT, '0') AS avg_release_year
+
+        FROM filtered_plays;")
+        .bind(from)
+        .bind(to)
+        .fetch_all(pool)
+        .await?;
+    if stats.is_empty() {
+        return Ok(None)
+    }
+    Ok(Some(stats))
 }
