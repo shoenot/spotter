@@ -1,18 +1,18 @@
 # spotter 
-Spotify listening history logger
+## Spotify listening history logger
 
-Consists of two parts:
-    - spotter: authenticates with Spotify, makes requests to the Spotify API for information, stores them in the Postgres database. It polls the spotify API every 5 minutes to get a list of all the songs that have been played since then.
-    - spotter-api: reads from the Postgres database (using readymade queries) and makes them available via API endpoints for integration into other stuff (website, etc.)
+### Consists of two parts:  
+- **spotter**: authenticates with Spotify, makes requests to the Spotify API for information, stores them in the Postgres database. It polls the spotify API every 5 minutes to get a list of all the songs that have been played since then.   
+- **spotter-api**: reads from the Postgres database (using readymade queries) and makes them available via API endpoints for integration into other stuff (website, etc.)   
 
 ## Installation  
 
-This is very much a personal project (for now at least) but I dont expect breaking changes, and its easy to set up:
-    - ```git clone``` the repo and ```cd``` into it.
-    - ```docker compose build```
-    - ```docker compose up``` (do not pass the -d flag as you need to authenticate)
-    - Go to the authentication link printed by the spotter. Once you authenticate successfully, it will automatically return.
-    - You should be ready to go. Press d to detach from the docker logs and enjoy!
+This is very much a personal project (for now at least) but I dont expect breaking changes, and its easy to set up:   
+- ```git clone``` the repo and ```cd``` into it.
+- ```docker compose build```
+- ```docker compose up``` (do not pass the -d flag as you need to authenticate)
+- Go to the authentication link printed by the spotter. Once you authenticate successfully, it will automatically return.
+- You should be ready to go. Press d to detach from the docker logs and enjoy!   
 
 ## API Reference  
 
